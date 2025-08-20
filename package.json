@@ -1,0 +1,41 @@
+{
+  "name": "pic-from-clipboard",
+  "productName": "剪贴板图像处理工具",
+  "version": "1.0.0",
+  "description": "基于Electron和Python的Windows桌面应用程序，实现剪贴板图像处理功能",
+  "main": ".vite/build/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linting configured\""
+  },
+  "keywords": [],
+  "author": {
+    "name": "Zhosolune",
+    "email": "1564228136@qq.com"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.3",
+    "@electron-forge/maker-deb": "^7.8.3",
+    "@electron-forge/maker-rpm": "^7.8.3",
+    "@electron-forge/maker-squirrel": "^7.8.3",
+    "@electron-forge/maker-zip": "^7.8.3",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.3",
+    "@electron-forge/plugin-fuses": "^7.8.3",
+    "@electron-forge/plugin-vite": "^7.8.3",
+    "@electron/fuses": "^1.8.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "electron": "37.3.1",
+    "vite": "^5.4.19"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "@vicons/fluent": "^0.13.0",
+    "ant-design-vue": "^4.2.6",
+    "electron-squirrel-startup": "^1.0.1",
+    "vue": "^3.5.18"
+  }
+}
