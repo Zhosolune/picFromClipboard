@@ -17,35 +17,47 @@ import sys
 import json
 import base64
 import argparse
-from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont
 import os
+from io import BytesIO
+from typing import Optional, Dict, Any, List, Union, Tuple
+from PIL import Image, ImageDraw, ImageFont
 
 
 class ImageProcessor:
-    """图像处理器类"""
+    """图像处理器类
     
-    def __init__(self):
+    提供完整的图像处理功能，包括基础操作、绘图功能和历史记录管理。
+    """
+    
+    def __init__(self) -> None:
         """
         初始化图像处理器
+        
+        创建一个新的图像处理器实例，初始化图像对象和历史记录。
+        
+        异常：
+            无
         """
-        self.image = None
-        self.original_image = None
-        self.history = []
-        self.history_index = -1
+        self.image: Optional[Image.Image] = None
+        self.original_image: Optional[Image.Image] = None
+        self.history: List[Image.Image] = []
+        self.history_index: int = -1
     
-    def load_from_base64(self, base64_data):
+    def load_from_base64(self, base64_data: str) -> bool:
         """
         从Base64数据加载图像
         
+        解析Base64编码的图像数据并创建PIL图像对象，同时初始化历史记录。
+        支持带有data URL前缀的Base64数据。
+        
         参数：
-            base64_data (str): Base64编码的图像数据
+            base64_data: Base64编码的图像数据，可包含data URL前缀
             
         返回：
-            bool: 加载是否成功
+            加载是否成功
             
         异常：
-            ValueError: 当Base64数据无效时抛出
+            ValueError: 当Base64数据格式无效时抛出
             IOError: 当图像数据无法解析时抛出
         """
         try:
@@ -70,15 +82,21 @@ class ImageProcessor:
             print(f"加载图像失败: {e}", file=sys.stderr)
             return False
     
-    def load_from_file(self, file_path):
+    def load_from_file(self, file_path: str) -> bool:
         """
         从文件加载图像
         
+        从指定的文件路径加载图像，支持PIL支持的所有图像格式。
+        
         参数：
-            file_path (str): 图像文件路径
+            file_path: 图像文件的完整路径
             
         返回：
-            bool: 加载是否成功
+            加载是否成功
+            
+        异常：
+            FileNotFoundError: 当文件不存在时抛出
+            IOError: 当文件无法读取或格式不支持时抛出
         """
         try:
             self.image = Image.open(file_path)
@@ -94,18 +112,23 @@ class ImageProcessor:
             print(f"加载图像文件失败: {e}", file=sys.stderr)
             return False
     
-    def crop(self, x, y, width, height):
+    def crop(self, x: int, y: int, width: int, height: int) -> bool:
         """
         裁剪图像
         
+        根据指定的坐标和尺寸裁剪图像。会自动调整裁剪区域以确保在图像边界内。
+        
         参数：
-            x (int): 裁剪区域左上角X坐标
-            y (int): 裁剪区域左上角Y坐标
-            width (int): 裁剪区域宽度
-            height (int): 裁剪区域高度
+            x: 裁剪区域左上角X坐标
+            y: 裁剪区域左上角Y坐标
+            width: 裁剪区域宽度
+            height: 裁剪区域高度
             
         返回：
-            bool: 操作是否成功
+            操作是否成功
+            
+        异常：
+            ValueError: 当坐标或尺寸参数无效时抛出
         """
         try:
             if not self.image:
@@ -131,15 +154,20 @@ class ImageProcessor:
             print(f"裁剪图像失败: {e}", file=sys.stderr)
             return False
     
-    def rotate(self, angle):
+    def rotate(self, angle: float) -> bool:
         """
         旋转图像
         
+        按指定角度旋转图像，使用白色背景填充空白区域。
+        
         参数：
-            angle (float): 旋转角度（度），正值为顺时针
+            angle: 旋转角度（度），正值为顺时针旋转
             
         返回：
-            bool: 操作是否成功
+            操作是否成功
+            
+        异常：
+            ValueError: 当角度参数无效时抛出
         """
         try:
             if not self.image:
@@ -157,12 +185,17 @@ class ImageProcessor:
             print(f"旋转图像失败: {e}", file=sys.stderr)
             return False
     
-    def flip_horizontal(self):
+    def flip_horizontal(self) -> bool:
         """
         水平翻转图像
         
+        沿垂直轴翻转图像（左右镜像）。
+        
         返回：
-            bool: 操作是否成功
+            操作是否成功
+            
+        异常：
+            RuntimeError: 当图像处理失败时抛出
         """
         try:
             if not self.image:
@@ -179,12 +212,17 @@ class ImageProcessor:
             print(f"水平翻转失败: {e}", file=sys.stderr)
             return False
     
-    def flip_vertical(self):
+    def flip_vertical(self) -> bool:
         """
         垂直翻转图像
         
+        沿水平轴翻转图像（上下镜像）。
+        
         返回：
-            bool: 操作是否成功
+            操作是否成功
+            
+        异常：
+            RuntimeError: 当图像处理失败时抛出
         """
         try:
             if not self.image:
@@ -201,20 +239,27 @@ class ImageProcessor:
             print(f"垂直翻转失败: {e}", file=sys.stderr)
             return False
     
-    def add_text(self, text, x, y, font_size=24, color='black', font_path=None):
+    def add_text(self, text: str, x: int, y: int, font_size: int = 24, 
+                 color: str = 'black', font_path: Optional[str] = None) -> bool:
         """
         添加文字标注
         
+        在图像的指定位置添加文字。支持自定义字体、大小和颜色。
+        
         参数：
-            text (str): 要添加的文字
-            x (int): 文字位置X坐标
-            y (int): 文字位置Y坐标
-            font_size (int): 字体大小，默认24
-            color (str): 文字颜色，默认黑色
-            font_path (str): 字体文件路径，可选
+            text: 要添加的文字内容
+            x: 文字位置X坐标
+            y: 文字位置Y坐标
+            font_size: 字体大小，默认24像素
+            color: 文字颜色，支持颜色名称或十六进制值，默认黑色
+            font_path: 字体文件路径，为None时使用系统默认字体
             
         返回：
-            bool: 操作是否成功
+            操作是否成功
+            
+        异常：
+            ValueError: 当坐标或字体大小无效时抛出
+            IOError: 当字体文件无法加载时抛出
         """
         try:
             if not self.image:
@@ -245,19 +290,28 @@ class ImageProcessor:
             print(f"添加文字失败: {e}", file=sys.stderr)
             return False
     
-    def draw_rectangle(self, x1, y1, x2, y2, outline_color='black', fill_color=None, width=2):
+    def draw_rectangle(self, x1: int, y1: int, x2: int, y2: int, 
+                      outline_color: str = 'black', fill_color: Optional[str] = None, 
+                      width: int = 2) -> bool:
         """
         绘制矩形
         
+        在图像上绘制矩形，支持自定义边框和填充颜色。
+        
         参数：
-            x1, y1 (int): 矩形左上角坐标
-            x2, y2 (int): 矩形右下角坐标
-            outline_color (str): 边框颜色，默认黑色
-            fill_color (str): 填充颜色，None表示不填充
-            width (int): 边框宽度，默认2
+            x1: 矩形左上角X坐标
+            y1: 矩形左上角Y坐标
+            x2: 矩形右下角X坐标
+            y2: 矩形右下角Y坐标
+            outline_color: 边框颜色，支持颜色名称或十六进制值，默认黑色
+            fill_color: 填充颜色，None表示不填充，默认None
+            width: 边框宽度，默认2像素
             
         返回：
-            bool: 操作是否成功
+            操作是否成功
+            
+        异常：
+            ValueError: 当坐标或宽度参数无效时抛出
         """
         try:
             if not self.image:
@@ -275,19 +329,27 @@ class ImageProcessor:
             print(f"绘制矩形失败: {e}", file=sys.stderr)
             return False
     
-    def draw_circle(self, x, y, radius, outline_color='black', fill_color=None, width=2):
+    def draw_circle(self, x: int, y: int, radius: int, 
+                   outline_color: str = 'black', fill_color: Optional[str] = None, 
+                   width: int = 2) -> bool:
         """
         绘制圆形
         
+        在图像上绘制圆形，支持自定义边框和填充颜色。
+        
         参数：
-            x, y (int): 圆心坐标
-            radius (int): 半径
-            outline_color (str): 边框颜色，默认黑色
-            fill_color (str): 填充颜色，None表示不填充
-            width (int): 边框宽度，默认2
+            x: 圆心X坐标
+            y: 圆心Y坐标
+            radius: 圆的半径
+            outline_color: 边框颜色，支持颜色名称或十六进制值，默认黑色
+            fill_color: 填充颜色，None表示不填充，默认None
+            width: 边框宽度，默认2像素
             
         返回：
-            bool: 操作是否成功
+            操作是否成功
+            
+        异常：
+            ValueError: 当坐标、半径或宽度参数无效时抛出
         """
         try:
             if not self.image:
@@ -306,18 +368,26 @@ class ImageProcessor:
             print(f"绘制圆形失败: {e}", file=sys.stderr)
             return False
     
-    def draw_line(self, x1, y1, x2, y2, color='black', width=2):
+    def draw_line(self, x1: int, y1: int, x2: int, y2: int, 
+                 color: str = 'black', width: int = 2) -> bool:
         """
         绘制直线
         
+        在图像上绘制从起点到终点的直线。
+        
         参数：
-            x1, y1 (int): 起点坐标
-            x2, y2 (int): 终点坐标
-            color (str): 线条颜色，默认黑色
-            width (int): 线条宽度，默认2
+            x1: 起点X坐标
+            y1: 起点Y坐标
+            x2: 终点X坐标
+            y2: 终点Y坐标
+            color: 线条颜色，支持颜色名称或十六进制值，默认黑色
+            width: 线条宽度，默认2像素
             
         返回：
-            bool: 操作是否成功
+            操作是否成功
+            
+        异常：
+            ValueError: 当坐标或宽度参数无效时抛出
         """
         try:
             if not self.image:
@@ -335,17 +405,23 @@ class ImageProcessor:
             print(f"绘制直线失败: {e}", file=sys.stderr)
             return False
     
-    def save_to_file(self, file_path, format='PNG', quality=95):
+    def save_to_file(self, file_path: str, format: str = 'PNG', quality: int = 95) -> bool:
         """
         保存图像到文件
         
+        将当前图像保存到指定路径，支持多种图像格式。对于JPEG格式会自动处理透明度。
+        
         参数：
-            file_path (str): 保存路径
-            format (str): 图像格式，默认PNG
-            quality (int): 图像质量（仅对JPEG有效），默认95
+            file_path: 保存文件的完整路径
+            format: 图像格式（PNG、JPEG、BMP、GIF等），默认PNG
+            quality: 图像质量，仅对JPEG格式有效，范围1-100，默认95
             
         返回：
-            bool: 保存是否成功
+            保存是否成功
+            
+        异常：
+            IOError: 当文件无法写入时抛出
+            ValueError: 当格式不支持或质量参数无效时抛出
         """
         try:
             if not self.image:
@@ -372,16 +448,22 @@ class ImageProcessor:
             print(f"保存图像失败: {e}", file=sys.stderr)
             return False
     
-    def to_base64(self, format='PNG', quality=95):
+    def to_base64(self, format: str = 'PNG', quality: int = 95) -> Optional[str]:
         """
         将图像转换为Base64字符串
         
+        将当前图像编码为Base64格式的data URL，便于在Web环境中使用。
+        
         参数：
-            format (str): 图像格式，默认PNG
-            quality (int): 图像质量（仅对JPEG有效），默认95
+            format: 图像格式（PNG、JPEG、BMP、GIF等），默认PNG
+            quality: 图像质量，仅对JPEG格式有效，范围1-100，默认95
             
         返回：
-            str: Base64编码的图像数据，失败时返回None
+            Base64编码的data URL字符串，失败时返回None
+            
+        异常：
+            ValueError: 当格式不支持或质量参数无效时抛出
+            MemoryError: 当图像过大无法编码时抛出
         """
         try:
             if not self.image:
@@ -409,12 +491,17 @@ class ImageProcessor:
             print(f"转换为Base64失败: {e}", file=sys.stderr)
             return None
     
-    def undo(self):
+    def undo(self) -> bool:
         """
         撤销操作
         
+        回退到历史记录中的上一个状态。
+        
         返回：
-            bool: 撤销是否成功
+            撤销是否成功，如果已经是最早状态则返回False
+            
+        异常：
+            无
         """
         if self.history_index > 0:
             self.history_index -= 1
@@ -422,12 +509,17 @@ class ImageProcessor:
             return True
         return False
     
-    def redo(self):
+    def redo(self) -> bool:
         """
         重做操作
         
+        前进到历史记录中的下一个状态。
+        
         返回：
-            bool: 重做是否成功
+            重做是否成功，如果已经是最新状态则返回False
+            
+        异常：
+            无
         """
         if self.history_index < len(self.history) - 1:
             self.history_index += 1
@@ -435,10 +527,19 @@ class ImageProcessor:
             return True
         return False
     
-    def _add_to_history(self):
+    def _add_to_history(self) -> None:
         """
         添加当前状态到历史记录
+        
+        将当前图像状态保存到历史记录中，用于撤销/重做功能。
+        自动管理历史记录数量，最多保留20个状态。
+        
+        异常：
+            无
         """
+        if self.image is None:
+            return
+            
         # 移除当前位置之后的历史记录
         self.history = self.history[:self.history_index + 1]
         
@@ -451,12 +552,23 @@ class ImageProcessor:
             self.history.pop(0)
             self.history_index -= 1
     
-    def get_image_info(self):
+    def get_image_info(self) -> Optional[Dict[str, Any]]:
         """
         获取图像信息
+        
+        返回当前图像的基本信息，包括尺寸、颜色模式等。
 
         返回：
-            dict: 包含图像信息的字典
+            包含图像信息的字典，如果没有加载图像则返回None
+            字典包含以下键：
+            - width: 图像宽度
+            - height: 图像高度
+            - mode: 颜色模式（RGB、RGBA等）
+            - format: 原始文件格式
+            - has_transparency: 是否包含透明度
+            
+        异常：
+            无
         """
         if not self.image:
             return None
@@ -470,9 +582,33 @@ class ImageProcessor:
         }
 
 
-def main():
+def main() -> None:
     """
     命令行接口主函数
+    
+    提供命令行方式调用图像处理功能，支持多种操作命令。
+    通过JSON格式的参数传递和结果返回，便于与Electron等前端框架集成。
+    
+    命令格式：
+        python image_processor.py <command> --input <input> [options]
+    
+    支持的命令：
+        crop: 裁剪图像
+        rotate: 旋转图像  
+        flip_horizontal: 水平翻转
+        flip_vertical: 垂直翻转
+        add_text: 添加文字标注
+        draw_rectangle: 绘制矩形
+        draw_circle: 绘制圆形
+        draw_line: 绘制直线
+        save: 保存图像
+        info: 获取图像信息
+        undo: 撤销操作
+        redo: 重做操作
+        
+    异常：
+        SystemExit: 当参数解析失败时退出
+        Exception: 当命令执行失败时输出错误信息
     """
     parser = argparse.ArgumentParser(description='图像处理工具')
     parser.add_argument('command', help='操作命令')
@@ -509,7 +645,7 @@ def main():
 
     # 执行命令
     success = False
-    result = {}
+    result: Dict[str, Any] = {}
 
     try:
         if args.command == 'crop':

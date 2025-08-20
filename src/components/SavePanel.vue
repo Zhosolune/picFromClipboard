@@ -364,7 +364,6 @@ initDefaultPath()
 
 .file-extension {
   font-size: 14px;
-  color: #666;
   margin-left: 4px;
 }
 
