@@ -49,6 +49,7 @@
           :image-data="imageData"
           @options-change="handleOptionsChange"
           @image-change="handleImageChange"
+          @clear="handleClear"
         />
       </div>
     </div>
@@ -125,7 +126,22 @@ const handleImageChange = (newImageData) => {
   imageData.value = newImageData
 }
 
+// 新增：Header 清空事件处理
+/**
+ * 清空当前图像并隐藏保存面板
+ * - 用于响应 AppHeader 发出的 clear 事件
+ */
+const handleClear = () => {
+  imageData.value = null
+  savePanelVisible.value = false
+  message.success('已清空当前图像')
+}
+
 // 保存处理
+/**
+ * 处理保存逻辑
+ * 成功后：自动隐藏保存面板（触发下滑动画）
+ */
 const handleSave = async (saveOptions) => {
   try {
     if (!imageData.value) {
@@ -145,6 +161,8 @@ const handleSave = async (saveOptions) => {
       if (result.success) {
         message.success('图像保存成功')
         lastSaveTime.value = new Date()
+        // 新增：保存成功后自动隐藏保存面板
+        savePanelVisible.value = false
       } else {
         message.error('保存失败: ' + (result.error || '未知错误'))
       }
@@ -440,16 +458,18 @@ const handleKeyDown = (event) => {
   }
 }
 
-/* 过渡动画：自底部唤起 */
+/* 过渡动画：自底部唤起（改为挤压式高度过渡） */
 .slide-up-enter-active, .slide-up-leave-active {
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: max-height 0.25s ease, min-height 0.25s ease, opacity 0.2s ease;
 }
 .slide-up-enter-from, .slide-up-leave-to {
-  transform: translateY(100%);
+  max-height: 0;
+  min-height: 0;
   opacity: 0;
 }
 .slide-up-enter-to, .slide-up-leave-from {
-  transform: translateY(0%);
+  max-height: 150px; /* 与 .save-panel 的布局上限一致 */
+  min-height: 70px;  /* 与 .save-panel 的布局下限一致 */
   opacity: 1;
 }
 

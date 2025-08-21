@@ -8,6 +8,7 @@
 
       <!-- 右侧操作按钮 -->
       <div class="header-actions">
+        <!-- 移除：清空按钮 -->
         <a-tooltip title="切换主题">
           <a-button
             type="text"

@@ -5,11 +5,8 @@
     </div>
     
     <div class="panel-content">
-      <!-- 选择工具 -->
-      <div v-if="currentTool === 'select'" class="property-section">
-        <div class="section-title">选择工具</div>
-        <p class="section-desc">点击和拖拽来选择区域</p>
-      </div>
+      <!-- 选择工具（提取为独立组件） -->
+      <SelectToolPanel v-if="currentTool === 'select'" />
 
       <!-- 裁剪工具 -->
       <div v-else-if="currentTool === 'crop'" class="property-section">
@@ -199,6 +196,16 @@
         </a-space>
       </div>
     </div>
+
+    <!-- 底部操作区：将“清空”按钮移动到底部，避免被保存面板遮挡 -->
+    <div class="panel-footer" v-if="currentTool === 'select'">
+      <a-space direction="vertical" style="width: 100%">
+        <a-button danger block @click="handleClear">
+          <template #icon><Delete24Regular class="button-icon" /></template>
+          清空
+        </a-button>
+      </a-space>
+    </div>
   </div>
 </template>
 
@@ -208,8 +215,10 @@ import { message } from 'ant-design-vue'
 import {
   Checkmark24Regular,
   Dismiss24Regular,
-  ArrowSwap24Regular
+  ArrowSwap24Regular,
+  Delete24Regular
 } from '@vicons/fluent'
+import SelectToolPanel from './SelectToolPanel.vue'
 
 // Props
 const props = defineProps({
@@ -228,7 +237,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['options-change', 'image-change'])
+const emit = defineEmits(['options-change', 'image-change', 'clear'])
 
 // 裁剪相关
 const cropRatio = ref('free')
@@ -271,7 +280,10 @@ watch([
   })
 }, { deep: true })
 
-// 方法
+/**
+ * 应用裁剪
+ * 成功后通过 image-change 向父级回传新图像
+ */
 const applyCrop = async () => {
   if (!props.imageData) {
     message.warning('没有图像数据')
@@ -302,15 +314,23 @@ const applyCrop = async () => {
   }
 }
 
+/**
+ * 取消裁剪，重置为选择工具
+ */
 const cancelCrop = () => {
-  // 取消裁剪，重置工具
   emit('options-change', { tool: 'select' })
 }
 
+/**
+ * 处理裁剪比例变更
+ */
 const handleCropRatioChange = (value) => {
   cropRatio.value = value
 }
 
+/**
+ * 按指定角度旋转
+ */
 const rotate = async (angle) => {
   if (!props.imageData) {
     message.warning('没有图像数据')
@@ -336,11 +356,17 @@ const rotate = async (angle) => {
   }
 }
 
+/**
+ * 旋转角度滑动回调
+ */
 const handleRotateChange = async (value) => {
   rotateAngle.value = value
   await rotate(value)
 }
 
+/**
+ * 水平翻转
+ */
 const flipHorizontal = async () => {
   if (!props.imageData) {
     message.warning('没有图像数据')
@@ -364,6 +390,9 @@ const flipHorizontal = async () => {
   }
 }
 
+/**
+ * 垂直翻转
+ */
 const flipVertical = async () => {
   if (!props.imageData) {
     message.warning('没有图像数据')
@@ -387,6 +416,9 @@ const flipVertical = async () => {
   }
 }
 
+/**
+ * 根据工具返回标题
+ */
 const getShapeTitle = (tool) => {
   const titles = {
     rectangle: '矩形',
@@ -395,6 +427,14 @@ const getShapeTitle = (tool) => {
     arrow: '箭头'
   }
   return titles[tool] || '图形'
+}
+
+/**
+ * 处理“清空”按钮点击：
+ * 向父组件派发 clear 事件，由父组件统一清空图像并隐藏保存面板
+ */
+const handleClear = () => {
+  emit('clear')
 }
 </script>
 
@@ -423,6 +463,13 @@ const getShapeTitle = (tool) => {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
+}
+
+/* 底部操作区域，避免被保存面板遮挡，保持舒适的内边距与分隔线 */
+.panel-footer {
+  padding: 12px 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .property-section {
