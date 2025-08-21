@@ -18,6 +18,9 @@
       </div>
     </div>
 
+    <!-- 新增：全局Header（置于 title-bar 下方） -->
+    <AppHeader @theme-change="handleThemeChange" />
+
     <!-- 主内容区域 -->
     <div class="main-content">
       <!-- 左侧工具栏 -->
@@ -55,8 +58,13 @@
       <SavePanel 
         :image-data="imageData"
         @save="handleSave"
+        @update:last-save-time="updateLastSaveTime"
+        @update:estimated-size="updateEstimatedSize"
       />
     </div>
+
+    <!-- 新增：全局Footer -->
+    <AppFooter :estimated-size="estimatedSize" :last-save-time="lastSaveTime" />
   </div>
 </template>
 
@@ -64,6 +72,8 @@
 import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { Subtract24Regular, Maximize24Regular, Dismiss24Regular } from '@vicons/fluent'
+import AppHeader from '../components/AppHeader.vue'
+import AppFooter from '../components/AppFooter.vue'
 import ToolBar from '../components/ToolBar.vue'
 import ImageCanvas from '../components/ImageCanvas.vue'
 import PropertyPanel from '../components/PropertyPanel.vue'
@@ -74,6 +84,24 @@ import { useClipboard } from '../utils/clipboard.js'
 const currentTool = ref('select')
 const imageData = ref(null)
 const toolOptions = ref({})
+
+// Footer状态数据
+const lastSaveTime = ref(null)
+const estimatedSize = ref('')
+
+// 由header发起的主题变化
+const handleThemeChange = (theme) => {
+  // 这里可扩展：同步到Ant Design主题或全局样式
+}
+
+// 供SavePanel更新footer状态
+const updateLastSaveTime = (time) => {
+  lastSaveTime.value = time
+}
+
+const updateEstimatedSize = (size) => {
+  estimatedSize.value = size
+}
 
 // 剪贴板监控
 const { startMonitoring, stopMonitoring } = useClipboard()
@@ -112,6 +140,7 @@ const handleSave = async (saveOptions) => {
 
       if (result.success) {
         message.success('图像保存成功')
+        lastSaveTime.value = new Date()
       } else {
         message.error('保存失败: ' + (result.error || '未知错误'))
       }
@@ -219,7 +248,7 @@ const handleKeyDown = (event) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 6px 0 16px;
 }
 
 .title-content h1 {
@@ -231,8 +260,77 @@ const handleKeyDown = (event) => {
 
 .title-actions {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   -webkit-app-region: no-drag;
+}
+
+.title-actions .ant-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: #666;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  padding: 2px;
+  min-width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+}
+
+.title-actions .ant-btn:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  color: #333;
+}
+
+.title-actions .ant-btn:active {
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.title-actions .ant-btn-dangerous {
+  color: #ff4d4f;
+}
+
+.title-actions .ant-btn-dangerous:hover {
+  background-color: rgba(255, 77, 79, 0.12) !important;
+  color: #ff4d4f;
+}
+
+.title-actions .ant-btn-dangerous:active {
+  background-color: rgba(255, 77, 79, 0.2) !important;
+}
+
+/* 暗色主题适配 */
+@media (prefers-color-scheme: dark) {
+  .title-content h1 {
+    color: #e8e8e8;
+  }
+
+  .title-actions .ant-btn {
+    color: #bbb;
+  }
+
+  .title-actions .ant-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #fff;
+  }
+
+  .title-actions .ant-btn:active {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .title-actions .ant-btn-dangerous {
+    color: #ff7875;
+  }
+
+  .title-actions .ant-btn-dangerous:hover {
+    background-color: rgba(255, 120, 117, 0.12) !important;
+    color: #ff7875;
+  }
+
+  .title-actions .ant-btn-dangerous:active {
+    background-color: rgba(255, 120, 117, 0.2) !important;
+  }
 }
 
 .main-content {

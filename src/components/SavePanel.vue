@@ -73,20 +73,6 @@
         />
       </div>
     </div>
-
-    <!-- 保存信息 -->
-    <div class="save-info">
-      <a-space>
-        <span v-if="imageData" class="info-item">
-          <Image24Regular class="info-icon" />
-          {{ getEstimatedSize() }}
-        </span>
-        <span v-if="lastSaveTime" class="info-item">
-          <Clock24Regular class="info-icon" />
-          上次保存: {{ formatTime(lastSaveTime) }}
-        </span>
-      </a-space>
-    </div>
   </div>
 </template>
 
@@ -109,8 +95,8 @@ const props = defineProps({
   }
 })
 
-// Emits
-const emit = defineEmits(['save'])
+// Emits - 添加状态更新事件
+const emit = defineEmits(['save', 'update:last-save-time', 'update:estimated-size'])
 
 // 响应式数据
 const outputFormat = ref('png')
@@ -130,7 +116,14 @@ watch(() => props.imageData, (newData) => {
   if (newData && !fileName.value) {
     generateFileName()
   }
+  // 更新预估大小到父组件
+  updateEstimatedSize()
 }, { immediate: true })
+
+// 监听格式和质量变化，更新预估大小
+watch([outputFormat, quality], () => {
+  updateEstimatedSize()
+})
 
 // 生成默认文件名
 const generateFileName = () => {
@@ -218,6 +211,10 @@ const handleSave = async () => {
     
     await emit('save', saveOptions)
     lastSaveTime.value = new Date()
+    
+    // 向父组件更新保存时间
+    emit('update:last-save-time', lastSaveTime.value)
+    
     message.success('图像保存成功')
   } catch (error) {
     console.error('保存失败:', error)
@@ -236,7 +233,7 @@ const handleSaveAs = async () => {
 }
 
 // 获取预估文件大小
-const getEstimatedSize = () => {
+function getEstimatedSize() {
   if (!props.imageData) return '0 KB'
   
   let estimatedSize = props.imageData.size || 0
@@ -260,8 +257,14 @@ const getEstimatedSize = () => {
   return formatFileSize(Math.round(estimatedSize))
 }
 
+// 更新预估大小到父组件
+function updateEstimatedSize() {
+  const size = getEstimatedSize()
+  emit('update:estimated-size', size)
+}
+
 // 格式化文件大小
-const formatFileSize = (bytes) => {
+function formatFileSize(bytes) {
   if (bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
@@ -347,7 +350,8 @@ initDefaultPath()
 }
 
 .input-label,
-.format-label {
+.format-label,
+.quality-label {
   font-size: 14px;
   color: #333;
   white-space: nowrap;
@@ -356,10 +360,14 @@ initDefaultPath()
 
 .filename-input {
   width: 280px;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
 }
 
 .path-input {
   width: 280px;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.2) !important;
 }
 
 .file-extension {
@@ -375,13 +383,9 @@ initDefaultPath()
 
 .format-select {
   width: 80px;
-  border: none !important;
-  box-shadow: none !important;
 }
 
 .format-select .ant-select-selector {
-  border: none !important;
-  box-shadow: none !important;
   background: transparent !important;
 }
 
