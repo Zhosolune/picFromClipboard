@@ -53,15 +53,17 @@
       </div>
     </div>
 
-    <!-- 底部保存面板 -->
-    <div class="save-panel">
-      <SavePanel 
-        :image-data="imageData"
-        @save="handleSave"
-        @update:last-save-time="updateLastSaveTime"
-        @update:estimated-size="updateEstimatedSize"
-      />
-    </div>
+    <!-- 底部保存面板：增加过渡与可见性控制 -->
+    <transition name="slide-up">
+      <div class="save-panel" v-show="savePanelVisible">
+        <SavePanel 
+          :image-data="imageData"
+          @save="handleSave"
+          @update:last-save-time="updateLastSaveTime"
+          @update:estimated-size="updateEstimatedSize"
+        />
+      </div>
+    </transition>
 
     <!-- 新增：全局Footer -->
     <AppFooter :estimated-size="estimatedSize" :last-save-time="lastSaveTime" />
@@ -84,6 +86,8 @@ import { useClipboard } from '../utils/clipboard.js'
 const currentTool = ref('select')
 const imageData = ref(null)
 const toolOptions = ref({})
+// 新增：保存面板可见性（常态下隐藏）
+const savePanelVisible = ref(false)
 
 // Footer状态数据
 const lastSaveTime = ref(null)
@@ -166,11 +170,39 @@ const closeWindow = () => {
   window.electronAPI?.closeWindow()
 }
 
+/**
+ * 手动触发粘贴动作
+ * 功能：
+ * - 主动读取系统剪贴板中的图像数据
+ * - 若存在图像，更新 imageData 并唤起保存面板
+ * 依赖：window.electronAPI.clipboard.readImage()
+ */
+const handlePasteAction = async () => {
+  try {
+    if (window.electronAPI && window.electronAPI.clipboard) {
+      const clipboardImage = await window.electronAPI.clipboard.readImage()
+      if (clipboardImage && clipboardImage.data) {
+        imageData.value = clipboardImage
+        savePanelVisible.value = true
+        message.success('已粘贴剪贴板图像')
+      } else {
+        message.info('剪贴板中未检测到图像')
+      }
+    } else {
+      message.warning('当前环境不支持读取剪贴板图像')
+    }
+  } catch (err) {
+    console.error('读取剪贴板失败:', err)
+    message.error('读取剪贴板失败: ' + err.message)
+  }
+}
+
 // 组件挂载
 onMounted(() => {
   // 启动剪贴板监控
   startMonitoring((clipboardImage) => {
     imageData.value = clipboardImage
+    savePanelVisible.value = true
     message.success('检测到剪贴板图像')
   })
 
@@ -183,7 +215,7 @@ const handleKeyDown = (event) => {
   // Ctrl+V 粘贴
   if (event.ctrlKey && event.key === 'v') {
     event.preventDefault()
-    // TODO: 手动触发剪贴板检查
+    handlePasteAction()
   }
   
   // Ctrl+Z 撤销
@@ -406,6 +438,19 @@ const handleKeyDown = (event) => {
   .save-panel {
     background: rgba(255, 255, 255, 0.95);
   }
+}
+
+/* 过渡动画：自底部唤起 */
+.slide-up-enter-active, .slide-up-leave-active {
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.slide-up-enter-from, .slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+.slide-up-enter-to, .slide-up-leave-from {
+  transform: translateY(0%);
+  opacity: 1;
 }
 
 /* 图标样式优化 */
