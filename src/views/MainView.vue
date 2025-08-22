@@ -19,7 +19,14 @@
     </div>
 
     <!-- 新增：全局Header（置于 title-bar 下方） -->
-    <AppHeader @theme-change="handleThemeChange" />
+    <AppHeader 
+      :current-tool="currentTool"
+      @theme-change="handleThemeChange"
+      @tool-change="handleToolChange"
+      @undo="handleUndo"
+      @redo="handleRedo"
+      @clear="handleClear"
+    />
 
     <!-- 主内容区域 -->
     <div class="main-content">
@@ -50,6 +57,7 @@
           @options-change="handleOptionsChange"
           @image-change="handleImageChange"
           @clear="handleClear"
+          @tool-change="handleToolChange"
         />
       </div>
     </div>
@@ -124,6 +132,26 @@ const handleOptionsChange = (options) => {
 // 图像变更处理
 const handleImageChange = (newImageData) => {
   imageData.value = newImageData
+}
+
+// 新增：Header 撤销事件处理
+/**
+ * 处理撤销操作
+ * - 用于响应 AppHeader 发出的 undo 事件
+ */
+const handleUndo = () => {
+  // TODO: 实现撤销功能
+  message.info('撤销功能开发中...')
+}
+
+// 新增：Header 重做事件处理
+/**
+ * 处理重做操作
+ * - 用于响应 AppHeader 发出的 redo 事件
+ */
+const handleRedo = () => {
+  // TODO: 实现重做功能
+  message.info('重做功能开发中...')
 }
 
 // 新增：Header 清空事件处理

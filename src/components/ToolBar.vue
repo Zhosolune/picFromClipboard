@@ -1,19 +1,6 @@
 <template>
   <div class="toolbar">
     <div class="tool-group">
-      <div class="tool-group-title">选择</div>
-      <a-tooltip title="选择工具" placement="right">
-        <div
-          class="toolbar-button"
-          :class="{ active: currentTool === 'select' }"
-          @click="$emit('tool-change', 'select')"
-        >
-          <Cursor24Regular class="tool-icon" />
-        </div>
-      </a-tooltip>
-    </div>
-
-    <div class="tool-group">
       <div class="tool-group-title">裁剪</div>
       <a-tooltip title="自由裁剪" placement="right">
         <div
@@ -71,84 +58,29 @@
         </div>
       </a-tooltip>
       
-      <a-tooltip title="矩形" placement="right">
+      <a-tooltip title="图形工具" placement="right">
         <div 
           class="toolbar-button"
-          :class="{ active: currentTool === 'rectangle' }"
-          @click="$emit('tool-change', 'rectangle')"
+          :class="{ active: currentTool === 'shape' || ['rectangle', 'circle', 'line', 'arrow'].includes(currentTool) }"
+          @click="$emit('tool-change', 'shape')"
         >
           <RectangleLandscape24Regular class="tool-icon" />
         </div>
       </a-tooltip>
-      
-      <a-tooltip title="圆形" placement="right">
-        <div 
-          class="toolbar-button"
-          :class="{ active: currentTool === 'circle' }"
-          @click="$emit('tool-change', 'circle')"
-        >
-          <Circle24Regular class="tool-icon" />
-        </div>
-      </a-tooltip>
-      
-      <a-tooltip title="直线" placement="right">
-        <div 
-          class="toolbar-button"
-          :class="{ active: currentTool === 'line' }"
-          @click="$emit('tool-change', 'line')"
-        >
-          <Line24Regular class="tool-icon" />
-        </div>
-      </a-tooltip>
-      
-      <a-tooltip title="箭头" placement="right">
-        <div 
-          class="toolbar-button"
-          :class="{ active: currentTool === 'arrow' }"
-          @click="$emit('tool-change', 'arrow')"
-        >
-          <ArrowRight24Regular class="tool-icon" />
-        </div>
-      </a-tooltip>
     </div>
 
-    <div class="tool-group">
-      <div class="tool-group-title">操作</div>
-      <a-tooltip title="撤销 (Ctrl+Z)" placement="right">
-        <div 
-          class="toolbar-button"
-          @click="$emit('tool-change', 'undo')"
-        >
-          <ArrowUndo24Regular class="tool-icon" />
-        </div>
-      </a-tooltip>
-      
-      <a-tooltip title="重做 (Ctrl+Y)" placement="right">
-        <div 
-          class="toolbar-button"
-          @click="$emit('tool-change', 'redo')"
-        >
-          <ArrowRedo24Regular class="tool-icon" />
-        </div>
-      </a-tooltip>
-    </div>
+
   </div>
 </template>
 
 <script setup>
 import {
-  Cursor24Regular,
   Cut24Regular,
   CropInterim24Regular,
   ArrowRotateClockwise24Regular,
   FlipHorizontal24Regular,
   TextFont24Regular,
-  RectangleLandscape24Regular,
-  Circle24Regular,
-  Line24Regular,
-  ArrowRight24Regular,
-  ArrowUndo24Regular,
-  ArrowRedo24Regular
+  RectangleLandscape24Regular
 } from '@vicons/fluent'
 
 // Props

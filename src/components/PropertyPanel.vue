@@ -8,203 +8,45 @@
       <!-- 选择工具（提取为独立组件） -->
       <SelectToolPanel v-if="currentTool === 'select'" />
 
-      <!-- 裁剪工具 -->
-      <div v-else-if="currentTool === 'crop'" class="property-section">
-        <div class="section-title">自由裁剪</div>
-        <a-space direction="vertical" style="width: 100%">
-          <a-button type="primary" block @click="applyCrop">
-            <template #icon><Checkmark24Regular class="button-icon" /></template>
-            应用裁剪
-          </a-button>
-          <a-button block @click="cancelCrop">
-            <template #icon><Dismiss24Regular class="button-icon" /></template>
-            取消裁剪
-          </a-button>
-        </a-space>
-      </div>
-
-      <!-- 固定比例裁剪 -->
-      <div v-else-if="currentTool === 'crop-ratio'" class="property-section">
-        <div class="section-title">固定比例裁剪</div>
-        <a-space direction="vertical" style="width: 100%">
-          <div class="form-item">
-            <label>裁剪比例</label>
-            <a-select 
-              v-model:value="cropRatio" 
-              style="width: 100%"
-              @change="handleCropRatioChange"
-            >
-              <a-select-option value="free">自由比例</a-select-option>
-              <a-select-option value="1:1">1:1 (正方形)</a-select-option>
-              <a-select-option value="4:3">4:3</a-select-option>
-              <a-select-option value="16:9">16:9</a-select-option>
-              <a-select-option value="3:2">3:2</a-select-option>
-              <a-select-option value="custom">自定义</a-select-option>
-            </a-select>
-          </div>
-          
-          <div v-if="cropRatio === 'custom'" class="form-item">
-            <label>自定义比例</label>
-            <a-input-group compact>
-              <a-input-number 
-                v-model:value="customRatio.width" 
-                :min="1" 
-                style="width: 45%"
-                placeholder="宽"
-              />
-              <a-input 
-                style="width: 10%; text-align: center; pointer-events: none" 
-                value=":" 
-                disabled 
-              />
-              <a-input-number 
-                v-model:value="customRatio.height" 
-                :min="1" 
-                style="width: 45%"
-                placeholder="高"
-              />
-            </a-input-group>
-          </div>
-        </a-space>
-      </div>
+      <!-- 裁剪工具（提取为独立组件） -->
+      <CropToolPanel 
+        v-if="currentTool === 'crop' || currentTool === 'crop-ratio'" 
+        :current-tool="currentTool"
+        :image-data="imageData"
+        @options-change="handleOptionsChange"
+        @image-change="handleImageChange"
+      />
 
       <!-- 旋转工具 -->
-      <div v-else-if="currentTool === 'rotate'" class="property-section">
-        <div class="section-title">旋转</div>
-        <a-space direction="vertical" style="width: 100%">
-          <div class="quick-actions">
-            <a-button @click="rotate(90)">90°</a-button>
-            <a-button @click="rotate(180)">180°</a-button>
-            <a-button @click="rotate(270)">270°</a-button>
-          </div>
-          
-          <div class="form-item">
-            <label>自定义角度</label>
-            <a-slider 
-              v-model:value="rotateAngle"
-              :min="-180"
-              :max="180"
-              :marks="{ '-180': '-180°', '-90': '-90°', '0': '0°', '90': '90°', '180': '180°' }"
-              @change="handleRotateChange"
-            />
-          </div>
-        </a-space>
-      </div>
+      <RotateToolPanel 
+        v-else-if="currentTool === 'rotate'"
+        :current-tool="currentTool"
+        :image-data="imageData"
+        @image-change="handleImageChange"
+      />
 
       <!-- 翻转工具 -->
-      <div v-else-if="currentTool === 'flip'" class="property-section">
-        <div class="section-title">翻转</div>
-        <a-space direction="vertical" style="width: 100%">
-          <a-button block @click="flipHorizontal">
-            <template #icon><ArrowSwap24Regular class="button-icon" /></template>
-            水平翻转
-          </a-button>
-          <a-button block @click="flipVertical">
-            <template #icon><ArrowSwap24Regular class="button-icon" style="transform: rotate(90deg)" /></template>
-            垂直翻转
-          </a-button>
-        </a-space>
-      </div>
+      <FlipToolPanel 
+        v-else-if="currentTool === 'flip'"
+        :current-tool="currentTool"
+        :image-data="imageData"
+        @image-change="handleImageChange"
+      />
 
       <!-- 文字工具 -->
-      <div v-else-if="currentTool === 'text'" class="property-section">
-        <div class="section-title">文字标注</div>
-        <a-space direction="vertical" style="width: 100%">
-          <div class="form-item">
-            <label>文字内容</label>
-            <a-textarea 
-              v-model:value="textContent"
-              placeholder="输入文字内容"
-              :rows="3"
-            />
-          </div>
-          
-          <div class="form-item">
-            <label>字体大小</label>
-            <a-slider 
-              v-model:value="fontSize"
-              :min="12"
-              :max="72"
-              :marks="{ 12: '12px', 24: '24px', 36: '36px', 48: '48px', 72: '72px' }"
-            />
-          </div>
-          
-          <div class="form-item">
-            <label>字体颜色</label>
-            <a-input 
-              v-model:value="textColor"
-              type="color"
-              style="width: 100%"
-            />
-          </div>
-          
-          <div class="form-item">
-            <label>字体样式</label>
-            <a-space>
-              <a-button 
-                :type="textBold ? 'primary' : 'default'"
-                @click="textBold = !textBold"
-              >
-                <strong>B</strong>
-              </a-button>
-              <a-button 
-                :type="textItalic ? 'primary' : 'default'"
-                @click="textItalic = !textItalic"
-              >
-                <em>I</em>
-              </a-button>
-            </a-space>
-          </div>
-        </a-space>
-      </div>
+      <TextToolPanel 
+        v-if="currentTool === 'text'"
+        :current-tool="currentTool"
+        @options-change="handleOptionsChange"
+      />
 
       <!-- 图形工具 -->
-      <div v-else-if="['rectangle', 'circle', 'line', 'arrow'].includes(currentTool)" class="property-section">
-        <div class="section-title">{{ getShapeTitle(currentTool) }}</div>
-        <a-space direction="vertical" style="width: 100%">
-          <div class="form-item">
-            <label>线条粗细</label>
-            <a-slider 
-              v-model:value="strokeWidth"
-              :min="1"
-              :max="20"
-              :marks="{ 1: '1px', 5: '5px', 10: '10px', 20: '20px' }"
-            />
-          </div>
-          
-          <div class="form-item">
-            <label>线条颜色</label>
-            <a-input 
-              v-model:value="strokeColor"
-              type="color"
-              style="width: 100%"
-            />
-          </div>
-          
-          <div v-if="['rectangle', 'circle'].includes(currentTool)" class="form-item">
-            <label>填充颜色</label>
-            <a-space>
-              <a-switch v-model:checked="hasFill" />
-              <a-input 
-                v-model:value="fillColor"
-                type="color"
-                :disabled="!hasFill"
-                style="flex: 1"
-              />
-            </a-space>
-          </div>
-        </a-space>
-      </div>
-    </div>
-
-    <!-- 底部操作区：将“清空”按钮移动到底部，避免被保存面板遮挡 -->
-    <div class="panel-footer" v-if="currentTool === 'select'">
-      <a-space direction="vertical" style="width: 100%">
-        <a-button danger block @click="handleClear">
-          <template #icon><Delete24Regular class="button-icon" /></template>
-          清空
-        </a-button>
-      </a-space>
+      <ShapeToolPanel 
+        v-if="currentTool === 'shape' || ['rectangle', 'circle', 'line', 'arrow'].includes(currentTool)"
+        :current-tool="currentTool"
+        @options-change="handleOptionsChange"
+        @shape-change="handleShapeChange"
+      />
     </div>
   </div>
 </template>
@@ -212,13 +54,13 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import {
-  Checkmark24Regular,
-  Dismiss24Regular,
-  ArrowSwap24Regular,
-  Delete24Regular
-} from '@vicons/fluent'
+
 import SelectToolPanel from './SelectToolPanel.vue'
+import CropToolPanel from './CropToolPanel.vue'
+import RotateToolPanel from './RotateToolPanel.vue'
+import FlipToolPanel from './FlipToolPanel.vue'
+import TextToolPanel from './TextToolPanel.vue'
+import ShapeToolPanel from './ShapeToolPanel.vue'
 
 // Props
 const props = defineProps({
@@ -237,200 +79,49 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['options-change', 'image-change', 'clear'])
+const emit = defineEmits(['options-change', 'image-change', 'clear', 'tool-change'])
 
-// 裁剪相关
-const cropRatio = ref('free')
-const customRatio = ref({ width: 1, height: 1 })
 
-// 旋转相关
-const rotateAngle = ref(0)
 
-// 文字相关
-const textContent = ref('')
-const fontSize = ref(24)
-const textColor = ref('#000000')
-const textBold = ref(false)
-const textItalic = ref(false)
 
-// 图形相关
-const strokeWidth = ref(2)
-const strokeColor = ref('#000000')
-const fillColor = ref('#ffffff')
-const hasFill = ref(false)
 
-// 监听属性变化并发送给父组件
-watch([
-  cropRatio, customRatio, rotateAngle, textContent, fontSize, textColor, 
-  textBold, textItalic, strokeWidth, strokeColor, fillColor, hasFill
-], () => {
-  emit('options-change', {
-    cropRatio: cropRatio.value,
-    customRatio: customRatio.value,
-    rotateAngle: rotateAngle.value,
-    textContent: textContent.value,
-    fontSize: fontSize.value,
-    textColor: textColor.value,
-    textBold: textBold.value,
-    textItalic: textItalic.value,
-    strokeWidth: strokeWidth.value,
-    strokeColor: strokeColor.value,
-    fillColor: fillColor.value,
-    hasFill: hasFill.value
-  })
-}, { deep: true })
+
+
+
+
+
+
+
+
+
 
 /**
- * 应用裁剪
- * 成功后通过 image-change 向父级回传新图像
+ * 处理图形工具类型切换
+ * 当用户在 ShapeToolPanel 中切换图形类型时调用
  */
-const applyCrop = async () => {
-  if (!props.imageData) {
-    message.warning('没有图像数据')
-    return
-  }
-
-  try {
-    // TODO: 获取裁剪区域坐标
-    const cropParams = {
-      x: 0, y: 0, width: 100, height: 100 // 临时值，需要从画布获取
-    }
-
-    const result = await window.electronAPI.python.execute('crop', {
-      input: props.imageData.data,
-      params: cropParams
-    })
-
-    if (result.success) {
-      // 更新图像数据
-      const newImageData = { ...props.imageData, ...result }
-      emit('image-change', newImageData)
-      message.success('裁剪成功')
-    } else {
-      message.error('裁剪失败: ' + (result.error || '未知错误'))
-    }
-  } catch (error) {
-    message.error('裁剪失败: ' + error.message)
-  }
+const handleShapeChange = (shapeType) => {
+  // 通知父组件切换当前工具
+  emit('tool-change', shapeType)
 }
 
 /**
- * 取消裁剪，重置为选择工具
+ * 处理子组件的选项变更事件
+ * 统一处理来自各个工具面板的选项变更
  */
-const cancelCrop = () => {
-  emit('options-change', { tool: 'select' })
+const handleOptionsChange = (options) => {
+  emit('options-change', options)
 }
 
 /**
- * 处理裁剪比例变更
+ * 处理子组件的图像变更事件
+ * 统一处理来自各个工具面板的图像变更
  */
-const handleCropRatioChange = (value) => {
-  cropRatio.value = value
+const handleImageChange = (imageData) => {
+  emit('image-change', imageData)
 }
 
 /**
- * 按指定角度旋转
- */
-const rotate = async (angle) => {
-  if (!props.imageData) {
-    message.warning('没有图像数据')
-    return
-  }
-
-  try {
-    const result = await window.electronAPI.python.execute('rotate', {
-      input: props.imageData.data,
-      params: { angle }
-    })
-
-    if (result.success) {
-      // 更新图像数据
-      const newImageData = { ...props.imageData, ...result }
-      emit('image-change', newImageData)
-      message.success(`旋转${angle}°成功`)
-    } else {
-      message.error('旋转失败: ' + (result.error || '未知错误'))
-    }
-  } catch (error) {
-    message.error('旋转失败: ' + error.message)
-  }
-}
-
-/**
- * 旋转角度滑动回调
- */
-const handleRotateChange = async (value) => {
-  rotateAngle.value = value
-  await rotate(value)
-}
-
-/**
- * 水平翻转
- */
-const flipHorizontal = async () => {
-  if (!props.imageData) {
-    message.warning('没有图像数据')
-    return
-  }
-
-  try {
-    const result = await window.electronAPI.python.execute('flip_horizontal', {
-      input: props.imageData.data
-    })
-
-    if (result.success) {
-      const newImageData = { ...props.imageData, ...result }
-      emit('image-change', newImageData)
-      message.success('水平翻转成功')
-    } else {
-      message.error('翻转失败: ' + (result.error || '未知错误'))
-    }
-  } catch (error) {
-    message.error('翻转失败: ' + error.message)
-  }
-}
-
-/**
- * 垂直翻转
- */
-const flipVertical = async () => {
-  if (!props.imageData) {
-    message.warning('没有图像数据')
-    return
-  }
-
-  try {
-    const result = await window.electronAPI.python.execute('flip_vertical', {
-      input: props.imageData.data
-    })
-
-    if (result.success) {
-      const newImageData = { ...props.imageData, ...result }
-      emit('image-change', newImageData)
-      message.success('垂直翻转成功')
-    } else {
-      message.error('翻转失败: ' + (result.error || '未知错误'))
-    }
-  } catch (error) {
-    message.error('翻转失败: ' + error.message)
-  }
-}
-
-/**
- * 根据工具返回标题
- */
-const getShapeTitle = (tool) => {
-  const titles = {
-    rectangle: '矩形',
-    circle: '圆形',
-    line: '直线',
-    arrow: '箭头'
-  }
-  return titles[tool] || '图形'
-}
-
-/**
- * 处理“清空”按钮点击：
+ * 处理"清空"按钮点击：
  * 向父组件派发 clear 事件，由父组件统一清空图像并隐藏保存面板
  */
 const handleClear = () => {
@@ -465,12 +156,7 @@ const handleClear = () => {
   overflow-y: auto;
 }
 
-/* 底部操作区域，避免被保存面板遮挡，保持舒适的内边距与分隔线 */
-.panel-footer {
-  padding: 12px 16px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
-}
+
 
 .property-section {
   margin-bottom: 24px;
