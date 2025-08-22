@@ -437,7 +437,19 @@ initDefaultPath()
 
 .format-select .ant-select-selector {
   background: transparent !important;
+  border: none !important; /* 去除常态边框 */
+  box-shadow: none !important; /* 去除焦点阴影 */
+  outline: none !important;
 }
+
+.format-select.ant-select-focused .ant-select-selector,
+.format-select.ant-select-open .ant-select-selector,
+.format-select .ant-select-selector:hover {
+  border: none !important; /* 聚焦/展开/悬停均无边框 */
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 
 .save-button {
   flex-shrink: 0;
@@ -452,6 +464,7 @@ initDefaultPath()
   gap: 16px;
   margin-top: 8px;
   padding: 8px 0;
+  flex-wrap: nowrap; /* 避免滑块换行挤压 */
 }
 
 .quality-label {
@@ -463,8 +476,9 @@ initDefaultPath()
 }
 
 .quality-slider {
-  flex: 1;
-  max-width: 300px;
+  flex: 0 0 300px; /* 固定基础宽度，避免在收缩容器中被压扁 */
+  width: 300px;
+  min-width: 220px; /* 保底宽度，防止“皱成一团” */
 }
 
 .save-info {
@@ -583,6 +597,13 @@ initDefaultPath()
   .format-label,
   .quality-label {
     font-size: 13px;
+  }
+
+  .quality-slider {
+    flex: 1 1 auto; /* 移动端下允许占满整行 */
+    width: 100%;
+    min-width: 0;
+    max-width: none;
   }
 }
 </style>

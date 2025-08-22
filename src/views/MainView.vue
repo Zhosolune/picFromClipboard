@@ -513,9 +513,16 @@ const handleKeyDown = (event) => {
   min-height: 0;
   position: relative;
   z-index: 1;
-  overflow: hidden; /* 防止内容溢出 */
+  overflow: clip;  /* 避免产生滚动条但不阻断子层滚动 */
 }
 
+.save-panel-overlay {
+  pointer-events: none; /* 默认不拦截事件，避免影响画布滚动等 */
+}
+.save-panel-backdrop,
+.save-panel {
+  pointer-events: auto; /* 背景和面板本身可交互 */
+}
 .toolbar {
   width: 72px;
   flex-shrink: 0;
@@ -570,27 +577,31 @@ const handleKeyDown = (event) => {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  top: 0; /* 覆盖主内容区域，若需要仅覆盖底部可调整 */
+  top: 0;
+  bottom: 0; /* 覆盖主内容区域（不遮盖Footer） */
   z-index: 20;
+  display: flex;               /* 作为弹性容器 */
+  flex-direction: column;      /* 纵向排列 */
+  justify-content: flex-end;   /* 子元素靠底对齐 */
 }
 .save-panel-backdrop {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.2);
+  z-index: 0; /* 背景层在下 */
 }
 .save-panel {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 150px; /* 固定高度以配合动画 */
-  overflow-y: auto;
+  position: relative;          /* 使用相对定位，避免绝对定位的高度计算陷阱 */
+  width: 100%;                 /* 占满宽度 */
+  min-height: 150px;           /* 常态基线高度 */
+  max-height: 100%;            /* 不超过可视容器高度 */
+  overflow-y: auto;            /* 内容超出时内部滚动 */
+  -webkit-overflow-scrolling: touch;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
-  z-index: 21;
+  z-index: 1;                  /* 高于背景层 */
   box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -638,9 +649,7 @@ const handleKeyDown = (event) => {
     width: 250px;
   }
 
-  .save-panel {
-    max-height: 250px;
-  }
+  /* 移除 .save-panel 的 max-height 限制，保持与桌面一致的自适应策略 */
 }
 
 @media (max-width: 800px) {
@@ -655,8 +664,6 @@ const handleKeyDown = (event) => {
     overflow-y: auto;
   }
 
-  .save-panel {
-    max-height: 300px;
-  }
+  /* 移除 .save-panel 的 max-height 限制，保持与桌面一致的自适应策略 */
 }
 </style>
