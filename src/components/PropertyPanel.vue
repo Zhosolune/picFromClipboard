@@ -10,7 +10,7 @@
 
       <!-- 裁剪工具（提取为独立组件） -->
       <CropToolPanel 
-        v-if="currentTool === 'crop' || currentTool === 'crop-ratio'" 
+        v-if="currentTool === 'crop'" 
         :current-tool="currentTool"
         :image-data="imageData"
         @options-change="handleOptionsChange"
@@ -81,20 +81,6 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['options-change', 'image-change', 'clear', 'tool-change'])
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * 处理图形工具类型切换
  * 当用户在 ShapeToolPanel 中切换图形类型时调用
@@ -109,6 +95,11 @@ const handleShapeChange = (shapeType) => {
  * 统一处理来自各个工具面板的选项变更
  */
 const handleOptionsChange = (options) => {
+  // 如果子组件通过 options 中携带了 tool 字段，表示请求切换工具
+  if (options && options.tool) {
+    emit('tool-change', options.tool)
+    return
+  }
   emit('options-change', options)
 }
 

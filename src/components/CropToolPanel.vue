@@ -1,7 +1,16 @@
 <template>
   <div class="crop-tool-panel">
+    <!-- 模式选择 -->
+    <div class="property-section">
+      <div class="section-title">裁剪模式</div>
+      <a-radio-group v-model:value="selectedMode" button-style="solid" @change="handleModeChange">
+        <a-radio-button value="free">自由裁剪</a-radio-button>
+        <a-radio-button value="ratio">固定比例裁剪</a-radio-button>
+      </a-radio-group>
+    </div>
+
     <!-- 自由裁剪 -->
-    <div v-if="cropMode === 'free'" class="property-section">
+    <div v-if="selectedMode === 'free'" class="property-section">
       <div class="section-title">自由裁剪</div>
       <a-space direction="vertical" style="width: 100%">
         <a-button type="primary" block @click="applyCrop">
@@ -16,7 +25,7 @@
     </div>
 
     <!-- 固定比例裁剪 -->
-    <div v-else-if="cropMode === 'ratio'" class="property-section">
+    <div v-else-if="selectedMode === 'ratio'" class="property-section">
       <div class="section-title">固定比例裁剪</div>
       <a-space direction="vertical" style="width: 100%">
         <div class="form-item">
@@ -74,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   Checkmark24Regular,
@@ -106,17 +115,29 @@ const props = defineProps({
 const emit = defineEmits(['options-change', 'image-change'])
 
 // 裁剪相关响应式数据
+const selectedMode = ref('free')
 const cropRatio = ref('free')
 const customRatio = ref({ width: 1, height: 1 })
 
-// 计算裁剪模式
-const cropMode = computed(() => {
-  return props.currentTool === 'crop' ? 'free' : 'ratio'
-})
+/**
+ * 模式切换处理
+ * 当用户在属性面板切换自由/固定比例时调用
+ */
+const handleModeChange = () => {
+  // 切换到固定比例模式时，若当前为自由比例，则默认设置为 1:1
+  if (selectedMode.value === 'ratio' && cropRatio.value === 'free') {
+    cropRatio.value = '1:1'
+  }
+  // 切换到自由裁剪时，比例恢复为自由
+  if (selectedMode.value === 'free') {
+    cropRatio.value = 'free'
+  }
+}
 
 // 监听属性变化并发送给父组件
-watch([cropRatio, customRatio], () => {
+watch([selectedMode, cropRatio, customRatio], () => {
   emit('options-change', {
+    cropMode: selectedMode.value,
     cropRatio: cropRatio.value,
     customRatio: customRatio.value
   })
@@ -159,7 +180,7 @@ const applyCrop = async () => {
 
 /**
  * 取消裁剪，重置为选择工具
- * 向父组件发送工具切换事件
+ * 向父组件发送工具切换事件（通过选项变更告知）
  */
 const cancelCrop = () => {
   emit('options-change', { tool: 'select' })

@@ -2,23 +2,13 @@
   <div class="toolbar">
     <div class="tool-group">
       <div class="tool-group-title">裁剪</div>
-      <a-tooltip title="自由裁剪" placement="right">
+      <a-tooltip title="裁剪" placement="right">
         <div
           class="toolbar-button"
           :class="{ active: currentTool === 'crop' }"
           @click="$emit('tool-change', 'crop')"
         >
           <Cut24Regular class="tool-icon" />
-        </div>
-      </a-tooltip>
-
-      <a-tooltip title="固定比例裁剪" placement="right">
-        <div
-          class="toolbar-button"
-          :class="{ active: currentTool === 'crop-ratio' }"
-          @click="$emit('tool-change', 'crop-ratio')"
-        >
-          <CropInterim24Regular class="tool-icon" />
         </div>
       </a-tooltip>
     </div>
@@ -76,7 +66,6 @@
 <script setup>
 import {
   Cut24Regular,
-  CropInterim24Regular,
   ArrowRotateClockwise24Regular,
   FlipHorizontal24Regular,
   TextFont24Regular,
