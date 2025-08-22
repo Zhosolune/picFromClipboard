@@ -1,6 +1,19 @@
 <template>
   <div class="save-panel">
     <div class="save-content">
+      <!-- 关闭按钮 -->
+      <a-button
+        type="text"
+        size="small"
+        @click="handleClose"
+        class="close-btn"
+        title="关闭"
+        aria-label="关闭"
+      >
+        <template #icon>
+          <Dismiss24Regular class="close-icon" />
+        </template>
+      </a-button>
       <!-- 第一行：文件名 + 保存路径 + 浏览按钮 -->
       <div class="save-row first-row">
         <div class="input-group">
@@ -84,7 +97,8 @@ import {
   Save24Regular,
   ShareAndroid24Regular,
   Image24Regular,
-  Clock24Regular
+  Clock24Regular,
+  Dismiss24Regular
 } from '@vicons/fluent'
 
 // Props
@@ -96,7 +110,7 @@ const props = defineProps({
 })
 
 // Emits - 添加状态更新事件
-const emit = defineEmits(['save', 'update:last-save-time', 'update:estimated-size'])
+const emit = defineEmits(['save', 'update:last-save-time', 'update:estimated-size', 'close'])
 
 // 响应式数据
 const outputFormat = ref('png')
@@ -232,6 +246,11 @@ const handleSaveAs = async () => {
   }
 }
 
+// 关闭面板处理
+const handleClose = () => {
+  emit('close')
+}
+
 // 获取预估文件大小
 function getEstimatedSize() {
   if (!props.imageData) return '0 KB'
@@ -296,7 +315,7 @@ initDefaultPath()
 <style scoped>
 .save-panel {
   background: transparent;
-  padding: 16px;
+  padding: 0;
   margin: 0;
   width: 100%;
   box-sizing: border-box;
@@ -306,7 +325,7 @@ initDefaultPath()
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 24px 36px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
@@ -315,6 +334,37 @@ initDefaultPath()
   align-items: flex-end;
   width: fit-content;
   margin-left: auto;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 2px;
+  right: 4px; /* 更靠右上角 */
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #999; /* 默认灰色 */
+  background: transparent !important; /* 无背景 */
+  border: none; /* 无边框 */
+  cursor: pointer;
+  z-index: 10;
+  transition: color 0.15s ease, transform 0.15s ease, filter 0.15s ease;
+}
+
+.close-btn:hover {
+  color: #333;
+  transform: scale(1.08);
+}
+
+.close-icon {
+  width: 16px;
+  height: 16px;
+  color: inherit;
 }
 
 .save-row {

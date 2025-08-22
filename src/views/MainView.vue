@@ -19,14 +19,15 @@
     </div>
 
     <!-- 新增：全局Header（置于 title-bar 下方） -->
-    <AppHeader 
-      :current-tool="currentTool"
-      @theme-change="handleThemeChange"
-      @tool-change="handleToolChange"
-      @undo="handleUndo"
-      @redo="handleRedo"
-      @clear="handleClear"
-    />
+    <AppHeader
+        :current-tool="currentTool"
+        @theme-change="handleThemeChange"
+        @tool-change="handleToolChange"
+        @undo="handleUndo"
+        @redo="handleRedo"
+        @clear="handleClear"
+        @save="handleSaveButtonClick"
+      />
 
     <!-- 主内容区域 -->
     <div class="main-content">
@@ -39,8 +40,9 @@
       </div>
 
       <!-- 中央编辑区域 -->
-      <div class="edit-area">
+      <div class="edit-area" ref="editAreaRef">
         <ImageCanvas 
+          ref="imageCanvasRef"
           :image-data="imageData"
           :current-tool="currentTool"
           :tool-options="toolOptions"
@@ -48,31 +50,37 @@
         />
       </div>
 
-      <!-- 右侧属性面板 -->
-      <div class="property-panel">
-        <PropertyPanel
-          :current-tool="currentTool"
-          :tool-options="toolOptions"
-          :image-data="imageData"
-          @options-change="handleOptionsChange"
-          @image-change="handleImageChange"
-          @clear="handleClear"
-          @tool-change="handleToolChange"
-        />
-      </div>
+      <!-- 右侧属性面板：挤压式展开，独立于编辑区域 -->
+      <transition name="panel-expand" @before-enter="onPanelBeforeEnter" @after-enter="onPanelAfterEnter" @before-leave="onPanelBeforeLeave" @after-leave="onPanelAfterLeave">
+        <div class="property-panel" v-show="propertyPanelVisible">
+          <PropertyPanel
+            :current-tool="currentTool"
+            :tool-options="toolOptions"
+            :image-data="imageData"
+            @options-change="handleOptionsChange"
+            @image-change="handleImageChange"
+            @clear="handleClear"
+            @tool-change="handleToolChange"
+          />
+        </div>
+      </transition>
+
+      <!-- 覆盖式保存面板（限制在 main-content 内，不遮盖 Footer） -->
+      <transition name="overlay-fade">
+        <div class="save-panel-overlay" v-show="savePanelVisible">
+          <div class="save-panel-backdrop" @click="savePanelVisible = false"></div>
+          <div class="save-panel">
+            <SavePanel 
+              :image-data="imageData"
+              @save="handleSave"
+              @update:last-save-time="updateLastSaveTime"
+              @update:estimated-size="updateEstimatedSize"
+              @close="savePanelVisible = false"
+            />
+          </div>
+        </div>
+      </transition>
     </div>
-
-    <!-- 底部保存面板：增加过渡与可见性控制 -->
-    <transition name="slide-up">
-      <div class="save-panel" v-show="savePanelVisible">
-        <SavePanel 
-          :image-data="imageData"
-          @save="handleSave"
-          @update:last-save-time="updateLastSaveTime"
-          @update:estimated-size="updateEstimatedSize"
-        />
-      </div>
-    </transition>
 
     <!-- 新增：全局Footer -->
     <AppFooter :estimated-size="estimatedSize" :last-save-time="lastSaveTime" />
@@ -90,6 +98,7 @@ import ImageCanvas from '../components/ImageCanvas.vue'
 import PropertyPanel from '../components/PropertyPanel.vue'
 import SavePanel from '../components/SavePanel.vue'
 import { useClipboard } from '../utils/clipboard.js'
+import { readClipboardImage, clearClipboard } from '../utils/clipboard.js'
 
 // 响应式数据
 const currentTool = ref('select')
@@ -97,6 +106,15 @@ const imageData = ref(null)
 const toolOptions = ref({})
 // 新增：保存面板可见性（常态下隐藏）
 const savePanelVisible = ref(false)
+// 新增：属性面板可见性（常态下隐藏）
+const propertyPanelVisible = ref(false)
+// 新增：属性面板展开状态（用于区分隐藏和折叠）
+const propertyPanelExpanded = ref(false)
+
+// 新增：用于维护可视宽度的ref
+const imageCanvasRef = ref(null)
+const editAreaRef = ref(null)
+let prevEditAreaWidth = 0
 
 // Footer状态数据
 const lastSaveTime = ref(null)
@@ -121,7 +139,30 @@ const { startMonitoring, stopMonitoring } = useClipboard()
 
 // 工具切换处理
 const handleToolChange = (tool) => {
-  currentTool.value = tool
+  const previousTool = currentTool.value
+  
+  // 如果点击的是同一个工具按钮
+  if (previousTool === tool) {
+    // 切换属性面板的折叠/展开状态
+    if (propertyPanelVisible.value) {
+      propertyPanelVisible.value = false
+      propertyPanelExpanded.value = false
+    } else {
+      propertyPanelVisible.value = true
+      propertyPanelExpanded.value = true
+    }
+  } else {
+    // 切换到不同的工具
+    currentTool.value = tool
+    
+    // 如果当前属性面板为折叠状态，展开对应的属性面板
+    if (!propertyPanelVisible.value) {
+      propertyPanelVisible.value = true
+      propertyPanelExpanded.value = true
+    }
+    // 如果当前属性面板为展开状态，直接切换到新工具对应的面板（保持展开）
+    // propertyPanelVisible.value 保持 true，只是内容会根据 currentTool 变化
+  }
 }
 
 // 工具选项变更处理
@@ -132,6 +173,35 @@ const handleOptionsChange = (options) => {
 // 图像变更处理
 const handleImageChange = (newImageData) => {
   imageData.value = newImageData
+}
+
+// 新增：属性面板过渡钩子，保持图像可视宽度
+/**
+ * 在属性面板展开/收起的过渡期间，保持图像可视宽度一致
+ * 通过在过渡前记录编辑区域宽度，在过渡后根据宽度变化成比例调整缩放
+ */
+const onPanelBeforeEnter = () => {
+  prevEditAreaWidth = editAreaRef.value ? editAreaRef.value.clientWidth : 0
+}
+const onPanelAfterEnter = () => {
+  if (!editAreaRef.value || !imageCanvasRef.value) return
+  const newWidth = editAreaRef.value.clientWidth
+  if (prevEditAreaWidth > 0 && newWidth > 0) {
+    const ratio = newWidth / prevEditAreaWidth
+    // 容器变窄=>ratio<1 缩小图像；容器变宽=>ratio>1 放大图像
+    imageCanvasRef.value.adjustZoomBy?.(ratio)
+  }
+}
+const onPanelBeforeLeave = () => {
+  prevEditAreaWidth = editAreaRef.value ? editAreaRef.value.clientWidth : 0
+}
+const onPanelAfterLeave = () => {
+  if (!editAreaRef.value || !imageCanvasRef.value) return
+  const newWidth = editAreaRef.value.clientWidth
+  if (prevEditAreaWidth > 0 && newWidth > 0) {
+    const ratio = newWidth / prevEditAreaWidth
+    imageCanvasRef.value.adjustZoomBy?.(ratio)
+  }
 }
 
 // 新增：Header 撤销事件处理
@@ -154,6 +224,19 @@ const handleRedo = () => {
   message.info('重做功能开发中...')
 }
 
+// 新增：Header 保存事件处理
+/**
+ * 处理保存按钮点击操作
+ */
+const handleSaveButtonClick = () => {
+  if (imageData.value) {
+    savePanelVisible.value = true
+    message.success('打开保存面板')
+  } else {
+    message.warning('没有图像可保存')
+  }
+}
+
 // 新增：Header 清空事件处理
 /**
  * 清空当前图像并隐藏保存面板
@@ -162,13 +245,15 @@ const handleRedo = () => {
 const handleClear = () => {
   imageData.value = null
   savePanelVisible.value = false
+  // 新增：清空时隐藏属性面板
+  propertyPanelVisible.value = false
+  propertyPanelExpanded.value = false
   message.success('已清空当前图像')
 }
 
 // 保存处理
 /**
  * 处理保存逻辑
- * 成功后：自动隐藏保存面板（触发下滑动画）
  */
 const handleSave = async (saveOptions) => {
   try {
@@ -189,8 +274,6 @@ const handleSave = async (saveOptions) => {
       if (result.success) {
         message.success('图像保存成功')
         lastSaveTime.value = new Date()
-        // 新增：保存成功后自动隐藏保存面板
-        savePanelVisible.value = false
       } else {
         message.error('保存失败: ' + (result.error || '未知错误'))
       }
@@ -221,35 +304,48 @@ const closeWindow = () => {
  * 功能：
  * - 主动读取系统剪贴板中的图像数据
  * - 若存在图像，更新 imageData 并唤起保存面板
- * 依赖：window.electronAPI.clipboard.readImage()
+ * - 粘贴成功后清空剪贴板
+ * 依赖：readClipboardImage(), clearClipboard()
  */
 const handlePasteAction = async () => {
   try {
-    if (window.electronAPI && window.electronAPI.clipboard) {
-      const clipboardImage = await window.electronAPI.clipboard.readImage()
-      if (clipboardImage && clipboardImage.data) {
-        imageData.value = clipboardImage
-        savePanelVisible.value = true
-        message.success('已粘贴剪贴板图像')
-      } else {
-        message.info('剪贴板中未检测到图像')
+    const clipboardImage = await readClipboardImage()
+    if (clipboardImage && clipboardImage.data) {
+      imageData.value = clipboardImage
+      // 移除：不再自动唤起保存面板和属性面板
+      message.success('粘贴成功')
+      
+      // 粘贴成功后清空剪贴板，防止重复检测
+      try {
+        await clearClipboard()
+        console.log('手动粘贴后剪贴板已清空')
+      } catch (error) {
+        console.error('清空剪贴板失败:', error)
       }
     } else {
-      message.warning('当前环境不支持读取剪贴板图像')
+      message.warning('剪贴板中没有图像')
     }
-  } catch (err) {
-    console.error('读取剪贴板失败:', err)
-    message.error('读取剪贴板失败: ' + err.message)
+  } catch (error) {
+    console.error('粘贴失败:', error)
+    message.error('粘贴失败')
   }
 }
 
 // 组件挂载
 onMounted(() => {
   // 启动剪贴板监控
-  startMonitoring((clipboardImage) => {
+  startMonitoring(async (clipboardImage) => {
     imageData.value = clipboardImage
-    savePanelVisible.value = true
+    // 移除：不再自动唤起保存面板和属性面板
     message.success('检测到剪贴板图像')
+    
+    // 粘贴成功后清空剪贴板，防止重复检测
+    try {
+      await clearClipboard()
+      console.log('剪贴板已清空')
+    } catch (error) {
+      console.error('清空剪贴板失败:', error)
+    }
   })
 
   // 监听键盘事件
@@ -417,6 +513,7 @@ const handleKeyDown = (event) => {
   min-height: 0;
   position: relative;
   z-index: 1;
+  overflow: hidden; /* 防止内容溢出 */
 }
 
 .toolbar {
@@ -438,13 +535,17 @@ const handleKeyDown = (event) => {
   }
 }
 
+/* 删除 content-wrapper 相关样式，改为主内容下直接两列布局 */
+
 .edit-area {
   flex: 1;
   min-width: 0;
+  transition: all 0.3s ease; /* 为挤压效果添加过渡 */
 }
 
 .property-panel {
   width: 300px;
+  height: 100%; /* 撑满剩余高度 */
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(15px);
@@ -453,6 +554,8 @@ const handleKeyDown = (event) => {
   position: relative;
   z-index: 5;
   box-shadow: -1px 0 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
 }
 
 /* 降级方案 */
@@ -462,43 +565,61 @@ const handleKeyDown = (event) => {
   }
 }
 
+/* 覆盖式保存面板样式 */
+.save-panel-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0; /* 覆盖主内容区域，若需要仅覆盖底部可调整 */
+  z-index: 20;
+}
+.save-panel-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+}
 .save-panel {
-  min-height: 70px;
-  flex-shrink: 0;
-  max-height: 150px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px; /* 固定高度以配合动画 */
   overflow-y: auto;
-  width: 100%;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
-  position: relative;
-  z-index: 10;
+  z-index: 21;
   box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
-  margin: 0;
-  padding: 0;
 }
 
-/* 降级方案 */
-@supports not (backdrop-filter: blur(20px)) {
-  .save-panel {
-    background: rgba(255, 255, 255, 0.95);
-  }
+/* 覆盖式过渡动画 */
+.overlay-fade-enter-active, .overlay-fade-leave-active {
+  transition: opacity 0.2s ease;
 }
-
-/* 过渡动画：自底部唤起（改为挤压式高度过渡） */
-.slide-up-enter-active, .slide-up-leave-active {
-  transition: max-height 0.25s ease, min-height 0.25s ease, opacity 0.2s ease;
-}
-.slide-up-enter-from, .slide-up-leave-to {
-  max-height: 0;
-  min-height: 0;
+.overlay-fade-enter-from, .overlay-fade-leave-to {
   opacity: 0;
 }
-.slide-up-enter-to, .slide-up-leave-from {
-  max-height: 150px; /* 与 .save-panel 的布局上限一致 */
-  min-height: 70px;  /* 与 .save-panel 的布局下限一致 */
+.overlay-fade-enter-to, .overlay-fade-leave-from {
   opacity: 1;
+}
+
+/* 属性面板挤压式过渡动画 */
+.panel-expand-enter-active,
+.panel-expand-leave-active {
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+.panel-expand-enter-from,
+.panel-expand-leave-to {
+  width: 0;
+}
+
+.panel-expand-enter-to,
+.panel-expand-leave-from {
+  width: 300px;
 }
 
 /* 图标样式优化 */

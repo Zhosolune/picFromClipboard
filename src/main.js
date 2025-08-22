@@ -67,6 +67,17 @@ ipcMain.handle('clipboard:read-image', async () => {
   }
 });
 
+// 清空剪贴板
+ipcMain.handle('clipboard:clear', async () => {
+  try {
+    clipboard.clear();
+    return true;
+  } catch (error) {
+    console.error('清空剪贴板失败:', error);
+    return false;
+  }
+});
+
 // 窗口控制
 ipcMain.handle('window:minimize', () => {
   if (mainWindow) {

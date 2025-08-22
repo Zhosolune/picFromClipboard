@@ -21,7 +21,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
      *
      * @returns {Promise<Object|null>} 图像数据对象或null
      */
-    readImage: () => ipcRenderer.invoke('clipboard:read-image')
+    readImage: () => ipcRenderer.invoke('clipboard:read-image'),
+    
+    /**
+     * 清空剪贴板
+     *
+     * @returns {Promise<boolean>} 清空是否成功
+     */
+    clear: () => ipcRenderer.invoke('clipboard:clear')
   },
 
   // 窗口控制API

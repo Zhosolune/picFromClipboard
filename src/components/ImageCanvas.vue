@@ -236,6 +236,25 @@ const fitToWindow = () => {
   }
 }
 
+/**
+ * 按倍数调整缩放
+ * @param {number} factor 缩放倍数，>1 放大，<1 缩小
+ */
+const adjustZoomBy = (factor) => {
+  if (typeof factor !== 'number' || !isFinite(factor) || factor <= 0) return
+  const next = zoomLevel.value * factor
+  zoomLevel.value = Math.max(0.1, Math.min(5, next))
+}
+
+/**
+ * 设置绝对缩放值
+ * @param {number} value 目标缩放值，范围[0.1,5]
+ */
+const setZoom = (value) => {
+  if (typeof value !== 'number' || !isFinite(value)) return
+  zoomLevel.value = Math.max(0.1, Math.min(5, value))
+}
+
 // 鼠标事件处理
 const handleWheel = (event) => {
   event.preventDefault()
@@ -312,6 +331,13 @@ const formatFileSize = (bytes) => {
 onMounted(() => {
   // 监听窗口大小变化
   window.addEventListener('resize', fitToWindow)
+})
+
+// 向父组件暴露方法
+defineExpose({
+  adjustZoomBy,
+  setZoom,
+  fitToWindow
 })
 </script>
 

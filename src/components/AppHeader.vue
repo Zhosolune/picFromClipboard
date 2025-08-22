@@ -49,6 +49,21 @@
           </a-button>
         </a-tooltip>
 
+        <!-- 保存按钮 -->
+        <a-tooltip title="保存">
+          <a-button
+            type="primary"
+            size="small"
+            @click="handleSave"
+            class="save-btn"
+          >
+            <template #icon>
+              <Save24Regular class="save-icon" />
+            </template>
+            保存
+          </a-button>
+        </a-tooltip>
+
         <!-- 清空按钮 -->
         <a-tooltip title="清空">
           <a-button
@@ -123,7 +138,8 @@ import {
   ArrowUndo24Regular,
   ArrowRedo24Regular,
   Cursor24Regular,
-  Delete24Regular
+  Delete24Regular,
+  Save24Regular
 } from '@vicons/fluent'
 
 // Props
@@ -135,7 +151,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['theme-change', 'tool-change', 'undo', 'redo', 'clear'])
+const emit = defineEmits(['theme-change', 'tool-change', 'undo', 'redo', 'clear', 'save'])
 
 // 响应式数据
 const currentTheme = ref('light')
@@ -191,6 +207,13 @@ const handleRedo = () => {
  */
 const handleSelectTool = () => {
   emit('tool-change', 'select')
+}
+
+/**
+ * 处理保存操作
+ */
+const handleSave = () => {
+  emit('save')
 }
 
 /**
@@ -315,6 +338,40 @@ const saveTheme = (theme) => {
   height: 28px;
   min-width: 28px;
   min-height: 28px;
+}
+
+/* 保存按钮样式 */
+.save-btn,
+:deep(.save-btn.ant-btn),
+:deep(.save-btn.ant-btn-primary) {
+  height: 32px !important;
+  padding: 0 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  margin-left: 8px !important;
+  transition: all 0.2s ease !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid #1890ff !important;
+  color: #1890ff !important;
+}
+
+.save-btn:hover,
+:deep(.save-btn.ant-btn:hover),
+:deep(.save-btn.ant-btn-primary:hover) {
+  background: rgba(24, 144, 255, 0.1) !important;
+  background-color: rgba(24, 144, 255, 0.1) !important;
+  border-color: #1890ff !important;
+}
+
+.save-icon {
+  width: 16px;
+  height: 16px;
+  color: #1890ff;
 }
 
 /* 清空按钮样式 */
@@ -455,6 +512,26 @@ const saveTheme = (theme) => {
 }
 
 :global([data-theme="dark"]) .header-btn.active .header-icon {
+  color: #40a9ff;
+}
+
+/* 暗色主题下的保存按钮样式 */
+:global([data-theme="dark"]) .save-btn,
+:global([data-theme="dark"]) :deep(.save-btn.ant-btn),
+:global([data-theme="dark"]) :deep(.save-btn.ant-btn-primary) {
+  border-color: #40a9ff !important;
+  color: #40a9ff !important;
+}
+
+:global([data-theme="dark"]) .save-btn:hover,
+:global([data-theme="dark"]) :deep(.save-btn.ant-btn:hover),
+:global([data-theme="dark"]) :deep(.save-btn.ant-btn-primary:hover) {
+  background: rgba(64, 169, 255, 0.15) !important;
+  background-color: rgba(64, 169, 255, 0.15) !important;
+  border-color: #40a9ff !important;
+}
+
+:global([data-theme="dark"]) .save-icon {
   color: #40a9ff;
 }
 
