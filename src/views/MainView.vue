@@ -57,6 +57,7 @@
             :current-tool="currentTool"
             :tool-options="toolOptions"
             :image-data="imageData"
+            :canvas-ref="imageCanvasRef"
             @options-change="handleOptionsChange"
             @image-change="handleImageChange"
             @clear="handleClear"
@@ -172,7 +173,41 @@ const handleOptionsChange = (options) => {
 
 // 图像变更处理
 const handleImageChange = (newImageData) => {
-  imageData.value = newImageData
+  console.log('接收到图像变更事件:', newImageData)
+  
+  // 如果是裁剪工具发送的数据，需要转换格式
+  if (newImageData && typeof newImageData === 'object' && newImageData.imageUrl && newImageData.blob) {
+    console.log('处理裁剪工具发送的新图像数据:', newImageData)
+    
+    // 从blob创建新的URL，避免URL格式混乱
+    const blobUrl = URL.createObjectURL(newImageData.blob)
+    
+    // 裁剪后的数据格式转换
+    const convertedData = {
+      data: blobUrl,
+      width: 0, // 将通过图像加载获取
+      height: 0, // 将通过图像加载获取
+      size: newImageData.blob.size,
+      format: 'png', // 裁剪后默认为PNG格式
+      blob: newImageData.blob
+    }
+    
+    // 获取图像尺寸
+    const img = new Image()
+    img.onload = () => {
+      convertedData.width = img.width
+      convertedData.height = img.height
+      imageData.value = convertedData
+      console.log('裁剪后图像数据已更新:', convertedData)
+    }
+    img.onerror = (error) => {
+      console.error('裁剪后图像加载失败:', error)
+    }
+    img.src = blobUrl
+  } else {
+    // 普通图像数据直接赋值
+    imageData.value = newImageData
+  }
 }
 
 // 新增：属性面板过渡钩子，保持图像可视宽度

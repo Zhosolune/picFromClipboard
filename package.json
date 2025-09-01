@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@playwright/test": "^1.55.0",
     "@vicons/fluent": "^0.13.0",
     "ant-design-vue": "^4.2.6",
     "electron-squirrel-startup": "^1.0.1",

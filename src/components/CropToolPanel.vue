@@ -3,10 +3,20 @@
     <!-- 模式选择 -->
     <div class="property-section">
       <div class="section-title">裁剪模式</div>
-      <a-radio-group v-model:value="selectedMode" button-style="solid" @change="handleModeChange">
-        <a-radio-button value="free">自由裁剪</a-radio-button>
-        <a-radio-button value="ratio">固定比例裁剪</a-radio-button>
-      </a-radio-group>
+      <a-segmented 
+        v-model:value="selectedMode" 
+        :options="segmentedOptions" 
+        @change="handleModeChange"
+        block
+      >
+        <template #label="{ title, value }">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <CropInterim24Regular v-if="value === 'free'" style="width: 16px; height: 16px;" />
+            <Crop24Regular v-if="value === 'ratio'" style="width: 16px; height: 16px;" />
+            <span>{{ title }}</span>
+          </div>
+        </template>
+      </a-segmented>
     </div>
 
     <!-- 自由裁剪 -->
@@ -83,11 +93,13 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, h } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   Checkmark24Regular,
-  Dismiss24Regular
+  Dismiss24Regular,
+  CropInterim24Regular,
+  Crop24Regular
 } from '@vicons/fluent'
 
 /**
@@ -108,16 +120,32 @@ const props = defineProps({
   imageData: {
     type: Object,
     default: null
+  },
+  canvasRef: {
+    type: Object,
+    default: null
   }
 })
 
 // Emits
-const emit = defineEmits(['options-change', 'image-change'])
+const emit = defineEmits(['options-change', 'image-change', 'switch-tool'])
 
 // 裁剪相关响应式数据
 const selectedMode = ref('free')
 const cropRatio = ref('free')
 const customRatio = ref({ width: 1, height: 1 })
+
+// Segmented组件选项配置
+const segmentedOptions = [
+  {
+    title: '自由裁剪',
+    value: 'free'
+  },
+  {
+    title: '固定比例',
+    value: 'ratio'
+  }
+]
 
 /**
  * 模式切换处理
@@ -145,33 +173,35 @@ watch([selectedMode, cropRatio, customRatio], () => {
 
 /**
  * 应用裁剪
- * 调用后端Python脚本进行图像裁剪处理
+ * 调用ImageCanvas的applyCrop方法进行图像裁剪处理
  * 成功后通过 image-change 向父级回传新图像
  */
 const applyCrop = async () => {
-  if (!props.imageData) {
-    message.warning('没有图像数据')
-    return
-  }
-
   try {
-    // TODO: 获取裁剪区域坐标
-    const cropParams = {
-      x: 0, y: 0, width: 100, height: 100 // 临时值，需要从画布获取
+    if (!props.canvasRef) {
+      message.error('Canvas reference not available')
+      return
     }
-
-    const result = await window.electronAPI.python.execute('crop', {
-      input: props.imageData.data,
-      params: cropParams
-    })
-
-    if (result.success) {
-      // 更新图像数据
-      const newImageData = { ...props.imageData, ...result }
-      emit('image-change', newImageData)
+    
+    // 调用ImageCanvas的applyCrop方法
+    const croppedBlob = await props.canvasRef.applyCrop()
+    
+    if (croppedBlob) {
+      // 创建新的图像URL
+      const imageUrl = URL.createObjectURL(croppedBlob)
+      
+      // 发送裁剪完成事件
+      emit('image-change', {
+        imageUrl,
+        blob: croppedBlob,
+        mode: selectedMode.value,
+        ratio: selectedMode.value === 'ratio' ? cropRatio.value : null,
+        customRatio: selectedMode.value === 'ratio' && cropRatio.value === 'custom' ? customRatio.value : null
+      })
+      
       message.success('裁剪成功')
     } else {
-      message.error('裁剪失败: ' + (result.error || '未知错误'))
+      message.error('裁剪失败：无法获取裁剪结果')
     }
   } catch (error) {
     message.error('裁剪失败: ' + error.message)
@@ -183,6 +213,7 @@ const applyCrop = async () => {
  * 向父组件发送工具切换事件（通过选项变更告知）
  */
 const cancelCrop = () => {
+  emit('switch-tool', null) // 切换到默认工具
   emit('options-change', { tool: 'select' })
 }
 

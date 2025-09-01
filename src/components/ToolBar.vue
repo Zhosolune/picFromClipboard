@@ -8,7 +8,7 @@
           :class="{ active: currentTool === 'crop' }"
           @click="$emit('tool-change', 'crop')"
         >
-          <Cut24Regular class="tool-icon" />
+          <Crop24Regular class="tool-icon" />
         </div>
       </a-tooltip>
     </div>
@@ -65,7 +65,7 @@
 
 <script setup>
 import {
-  Cut24Regular,
+  Crop24Regular,
   ArrowRotateClockwise24Regular,
   FlipHorizontal24Regular,
   TextFont24Regular,

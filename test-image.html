@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Image Generator</title>
+</head>
+<body>
+    <h1>测试图片生成器</h1>
+    <p>点击按钮生成测试图片并复制到剪贴板，然后在应用中粘贴测试裁剪功能。</p>
+    
+    <div id="preview" style="border: 1px solid #ccc; margin: 20px 0; padding: 10px; background: #f9f9f9;">
+        <p>图片预览：</p>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <button onclick="copyToClipboard()" style="padding: 10px 20px; margin-right: 10px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">复制到剪贴板</button>
+        <button onclick="readFromClipboard()" style="padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">读取剪贴板</button>
+    </div>
+    
+    <div id="status" style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px;">准备就绪</div>
+    
+    <div id="readResult" style="margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px;">点击"读取剪贴板"按钮测试读取功能</div>
+    
+    <script>
+        function generateTestImage() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置画布尺寸
+            canvas.width = 400;
+            canvas.height = 300;
+            
+            // 绘制渐变背景
+            const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+            gradient.addColorStop(0, '#ff6b6b');
+            gradient.addColorStop(0.5, '#4ecdc4');
+            gradient.addColorStop(1, '#45b7d1');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 400, 300);
+            
+            // 绘制文字
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('测试图片', 200, 150);
+            ctx.font = '16px Arial';
+            ctx.fillText('用于裁剪功能测试', 200, 180);
+            
+            // 绘制一些图形
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.arc(100, 100, 30, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(300, 200, 25, 0, Math.PI * 2);
+            ctx.fill();
+            
+            return canvas;
+        }
+        
+        async function copyToClipboard() {
+            try {
+                const canvas = generateTestImage();
+                
+                // 将canvas转换为blob
+                canvas.toBlob(async (blob) => {
+                    try {
+                        // 检查浏览器是否支持Clipboard API
+                        if (navigator.clipboard && navigator.clipboard.write) {
+                            // 使用现代Clipboard API
+                            await navigator.clipboard.write([
+                                new ClipboardItem({
+                                    'image/png': blob
+                                })
+                            ]);
+                        } else {
+                            // 降级方案：创建临时的图片元素并尝试复制
+                            const img = new Image();
+                            img.src = canvas.toDataURL('image/png');
+                            
+                            // 创建一个可选择的元素
+                            const div = document.createElement('div');
+                            div.contentEditable = true;
+                            div.appendChild(img);
+                            document.body.appendChild(div);
+                            
+                            // 选择图片
+                            const selection = window.getSelection();
+                            const range = document.createRange();
+                            range.selectNodeContents(div);
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                            
+                            // 尝试复制
+                            const success = document.execCommand('copy');
+                            document.body.removeChild(div);
+                            
+                            if (!success) {
+                                throw new Error('execCommand复制失败');
+                            }
+                        }
+                        
+                        document.getElementById('status').innerHTML = 
+                            '<span style="color: green;">✓ 图片已复制到剪贴板！现在可以在应用中粘贴测试。</span>';
+                    } catch (err) {
+                        console.error('复制失败:', err);
+                        document.getElementById('status').innerHTML = 
+                            '<span style="color: red;">✗ 复制失败: ' + err.message + '</span><br>' +
+                            '<small>提示：某些浏览器需要HTTPS环境才能使用剪贴板API</small>';
+                    }
+                }, 'image/png');
+            } catch (err) {
+                console.error('生成图片失败:', err);
+                document.getElementById('status').innerHTML = 
+                    '<span style="color: red;">✗ 生成图片失败: ' + err.message + '</span>';
+            }
+        }
+        
+        // 添加读取剪贴板功能（用于测试）
+        async function readFromClipboard() {
+            try {
+                if (navigator.clipboard && navigator.clipboard.read) {
+                    const clipboardItems = await navigator.clipboard.read();
+                    
+                    for (const clipboardItem of clipboardItems) {
+                        for (const type of clipboardItem.types) {
+                            if (type.startsWith('image/')) {
+                                const blob = await clipboardItem.getType(type);
+                                const url = URL.createObjectURL(blob);
+                                
+                                const img = document.createElement('img');
+                                img.src = url;
+                                img.style.maxWidth = '200px';
+                                img.style.maxHeight = '150px';
+                                img.style.border = '2px solid #4CAF50';
+                                img.style.marginTop = '10px';
+                                
+                                const readResult = document.getElementById('readResult');
+                                readResult.innerHTML = '<p style="color: green;">✓ 从剪贴板读取到图片：</p>';
+                                readResult.appendChild(img);
+                                return;
+                            }
+                        }
+                    }
+                    
+                    document.getElementById('readResult').innerHTML = 
+                        '<span style="color: orange;">剪贴板中没有图片数据</span>';
+                } else {
+                    document.getElementById('readResult').innerHTML = 
+                        '<span style="color: red;">浏览器不支持读取剪贴板API</span>';
+                }
+            } catch (err) {
+                console.error('读取剪贴板失败:', err);
+                document.getElementById('readResult').innerHTML = 
+                    '<span style="color: red;">读取失败: ' + err.message + '</span>';
+            }
+        }
+        
+        // 页面加载完成后自动生成预览
+        window.onload = function() {
+            const canvas = generateTestImage();
+            document.getElementById('preview').appendChild(canvas);
+        };
+    </script>
+</body>
+</html>

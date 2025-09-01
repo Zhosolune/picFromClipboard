@@ -13,8 +13,10 @@
         v-if="currentTool === 'crop'" 
         :current-tool="currentTool"
         :image-data="imageData"
+        :canvas-ref="canvasRef"
         @options-change="handleOptionsChange"
         @image-change="handleImageChange"
+        @switch-tool="handleSwitchTool"
       />
 
       <!-- 旋转工具 -->
@@ -75,11 +77,23 @@ const props = defineProps({
   imageData: {
     type: Object,
     default: null
+  },
+  canvasRef: {
+    type: Object,
+    default: null
   }
 })
 
 // Emits
 const emit = defineEmits(['options-change', 'image-change', 'clear', 'tool-change'])
+
+/**
+ * 处理工具切换
+ * 当子组件请求切换工具时调用
+ */
+const handleSwitchTool = (tool) => {
+  emit('tool-change', tool)
+}
 
 /**
  * 处理图形工具类型切换
